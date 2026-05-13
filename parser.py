@@ -2,46 +2,28 @@ import requests
 from bs4 import BeautifulSoup
 
 def search_companies(query):
-    results = []
+    url = f"https://www.bing.com/search?q={query}"
 
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
 
-    url = f"https://www.google.com/search?q={query}"
+    r = requests.get(url, headers=headers, timeout=10)
+    soup = BeautifulSoup(r.text, "html.parser")
 
-    r = requests.get(url, headers=headers)
+    results = []
 
-    soup = BeautifulSoup(r.text, "lxml")
+    for item in soup.select("li.b_algo"):
+        title_tag = item.select_one("h2")
+        snippet_tag = item.select_one(".b_caption p")
 
-    for g in soup.find_all("div"):
-        text = g.get_text(" ", strip=True)
+        title = title_tag.text.strip() if title_tag else ""
+        snippet = snippet_tag.text.strip() if snippet_tag else ""
 
-        if "+" in text or "@" in text:
+        if title:
             results.append({
-                "company": text[:80],
-                "phone": extract_phone(text),
-                "email": extract_email(text)
+                "company": title,
+                "info": snippet
             })
 
     return results[:20]
-
-
-def extract_phone(text):
-    words = text.split()
-
-    for w in words:
-        if "+" in w and len(w) > 8:
-            return w
-
-    return ""
-
-
-def extract_email(text):
-    words = text.split()
-
-    for w in words:
-        if "@" in w:
-            return w
-
-    return ""
